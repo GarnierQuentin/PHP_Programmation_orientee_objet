@@ -13,17 +13,18 @@ class Game{
     private $hero;
     private $enemy;
 
-    public function __construct(){
-        $this->hero = new Hero(1, 2, 1, "pair", "Seong", "Gi-hun", 2, 2);
-        $this->enemy = array();
-    }
 
-    public function generateHero($character){
+    public function generateHero(){
         $list_of_characters = [
-            [],
-            [],
-            []
+            [1, 2, "Seong Gi-hun", 15],
+            [2, 1, "Kang Sae-byeok", 25],
+            [3, 0, "Cho Sang-woo", 35]
         ];
+
+        $chooseHeroe = Utils::generateRandomNumber(0, 2);
+
+        $this->hero = new Hero($list_of_characters[$chooseHeroe][0], $list_of_characters[$chooseHeroe][1], $list_of_characters[$chooseHeroe][2], $list_of_characters[$chooseHeroe][3]);
+        echo "Vous avez choisi le personnage : " . $this->hero->getName() . "<br>";
     }
 
     public function generateEnemies($difficulty){
@@ -32,12 +33,56 @@ class Game{
         echo "<br> Difficulté de la partie : " . $list_of_difficulties[$difficulty] . "<br>";
 
         for ($i=0; $i < $amount_of_enemies[$difficulty]; $i++) { 
-            $this->enemy[$i] = new Enemy(70, "Test", 13, 2, 2);
+            $age = Utils::generateRandomNumber(0, 100);
+            $enemyBalls = Utils::generateRandomNumber(1, 20);
+            $this->enemy[$i] = new Enemy($age, "Enemy", $enemyBalls);
         }
 
-        var_dump($this->enemy);
     }
 
+
+    public function startGame(){
+        $difficulty = Utils::generateRandomNumber(0, 2);
+        $this->generateHero();
+        $this->generateEnemies($difficulty);
+
+        echo "<br>";
+
+        for ($i=0; $i < count($this->enemy) && $this->hero->getBalls() > 0; $i++) { 
+            echo "Vous avez rencontré un ennemi qui a " . $this->enemy[$i]->age . " ans et " . $this->enemy[$i]->getBalls() . " billes <br>";
+            $this->hero->tricher = $this->hero->tricherOuPas($this->hero->tricher);
+            if ($this->enemy[$i]->age >= 70 && $this->hero->tricher == true) {
+                echo "Vous choisissez de tricher ! <br>";
+                $this->hero->setBalls($this->hero->getBalls() + $this->enemy[$i]->getBalls());
+                $this->enemy[$i]->setBalls(0);
+                echo "Vous avez maintenant " . $this->hero->getBalls() . " billes <br>";
+            }
+            else{
+                $heroPairOrNot = $this->hero->choosePairOrNot();
+
+                if ($this->enemy[$i]->getBalls() % 2 == 0) {
+                    $enemyPairOrNot = true;
+                }
+                else{
+                    $enemyPairOrNot = false;
+                }
+
+                if ($heroPairOrNot === $enemyPairOrNot) {
+                    echo "Vous avez gagné ! <br>";
+                    $this->hero->setBalls($this->hero->getBalls() + $this->enemy[$i]->getBalls() + $this->hero->bonus);
+                    $this->enemy[$i]->setBalls(0);
+                    echo "Vous avez maintenant " . $this->hero->getBalls() . " billes <br>";
+                }
+                else{
+                    echo "Vous avez perdu ! <br>";
+                    $this->hero->setBalls($this->hero->getBalls() - $this->enemy[$i]->getBalls() - $this->hero->malus);
+                    if ($this->hero->getBalls() > 0) {
+                        echo "Vous avez maintenant " . $this->hero->getBalls() . " billes <br>";
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -49,14 +94,10 @@ class Character{
 
     private $name;
     private $balls;
-    private $win;
-    private $lose;
 
-    public function __construct($name, $balls, $win, $lose){
+    public function __construct($name, $balls){
         $this->name = $name;
         $this->balls = $balls;
-        $this->win = $win;
-        $this->lose = $lose;
     }
 
     public function getName(){
@@ -65,14 +106,6 @@ class Character{
 
     public function getBalls(){
         return $this->balls;
-    }
-
-    public function getWin(){
-        return $this->win;
-    }
-
-    public function getLose(){
-        return $this->lose;
     }
 
     public function setBalls($balls){
@@ -91,19 +124,33 @@ class Hero extends Character{
     private $bonus;
     private $malus;
     public $tricher;
-    public $choosePairOrNot;
 
-    public function __construct($bonus, $malus, $tricher, $choosePairOrNot, $name, $balls, $win, $lose){
+    public function __construct($bonus, $malus, $name, $balls){
         $this->bonus = $bonus;
         $this->malus = $malus;
-        $this->tricher = $tricher;
-        $this->choosePairOrNot = $choosePairOrNot;
 
         // J'appelle le constructerur de la classe parente
-        parent::__construct($name, $balls, $win, $lose);
+        parent::__construct($name, $balls);
 
-        function checkPairOrNot($choosePairOrNot){
-            if($choosePairOrNot == "pair"){
+
+        function pairOuImpair(){
+            $choosePairOrNot = Utils::generateRandomNumber(0, 1);
+            return checkPairOrNot($choosePairOrNot);
+        }
+
+
+        function checkPairOrNot($pairOrNot){
+            if($pairOrNot == 0){
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+
+        function tricherOuPas($tricher){
+            $tricher = Utils::generateRandomNumber(0, 1);
+            if($tricher == 0){
                 return true;
             }else{
                 return false;
@@ -119,11 +166,11 @@ class Enemy extends Character{
 
     private $age;
 
-    public function __construct($age, $name, $balls, $win, $lose){
+    public function __construct($age, $name, $balls){
         $this->age = $age;
 
         // J'appelle le constructerur de la classe parente
-        parent::__construct($name, $balls, $win, $lose);
+        parent::__construct($name, $balls);
     }
 }
 
@@ -137,10 +184,8 @@ abstract class Utils{
     }
 }
 
-$difficulty = Utils::generateRandomNumber(0, 2);
+
 $game = new Game();
-$game->generateEnemies($difficulty);
-
-
+$game->startGame();
 
 ?>
